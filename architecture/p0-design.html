@@ -1,0 +1,136 @@
+﻿<h2>Phase 0: 基础架构 &amp; 项目管理 — 系统设计</h2>
+<p class="subtitle">后端骨架 + Agent 插件接口 + 最小前端</p>
+
+<div class="mockup">
+  <div class="mockup-header">P0 Directory Structure</div>
+  <div class="mockup-body" style="padding:24px;background:#0d1117;border-radius:6px;font-family:monospace;font-size:12px;line-height:1.8;color:#c9d1d9;">
+    <div style="color:#8b949e;">aios/</div>
+    <div style="padding-left:20px;color:#8b949e;">├── backend/</div>
+    <div style="padding-left:40px;color:#f0883e;">│   ├── app/</div>
+    <div style="padding-left:60px;color:#8b949e;">│   │   ├── main.py          <span style="color:#6e7681;"># FastAPI entry</span></div>
+    <div style="padding-left:60px;color:#8b949e;">│   │   ├── config.py         <span style="color:#6e7681;"># Settings (env)</span></div>
+    <div style="padding-left:60px;color:#8b949e;">│   │   ├── database.py       <span style="color:#6e7681;"># PostgreSQL + pgvector</span></div>
+    <div style="padding-left:60px;color:#58a6ff;">│   │   ├── models/           <span style="color:#6e7681;"># SQLAlchemy ORM</span></div>
+    <div style="padding-left:60px;color:#58a6ff;">│   │   ├── schemas/          <span style="color:#6e7681;"># Pydantic DTOs</span></div>
+    <div style="padding-left:60px;color:#58a6ff;">│   │   ├── api/              <span style="color:#6e7681;"># Route handlers</span></div>
+    <div style="padding-left:60px;color:#3fb950;">│   │   ├── agent/            <span style="color:#6e7681;"># Plugin interface + registry</span></div>
+    <div style="padding-left:60px;color:#d2a8ff;">│   │   ├── llm/              <span style="color:#6e7681;"># LLMProvider abstraction</span></div>
+    <div style="padding-left:60px;color:#8b949e;">│   │   └── memory/           <span style="color:#6e7681;"># pgvector utils (P1)</span></div>
+    <div style="padding-left:40px;color:#8b949e;">│   ├── alembic/               <span style="color:#6e7681;"># DB migrations</span></div>
+    <div style="padding-left:40px;color:#8b949e;">│   └── requirements.txt</div>
+    <div style="padding-left:20px;color:#8b949e;">├── frontend/</div>
+    <div style="padding-left:40px;color:#8b949e;">│   ├── src/</div>
+    <div style="padding-left:60px;color:#8b949e;">│   │   ├── App.tsx</div>
+    <div style="padding-left:60px;color:#8b949e;">│   │   ├── pages/Projects.tsx</div>
+    <div style="padding-left:60px;color:#8b949e;">│   │   └── api/              <span style="color:#6e7681;"># typed API client</span></div>
+    <div style="padding-left:40px;color:#8b949e;">│   └── package.json</div>
+    <div style="padding-left:20px;color:#8b949e;">└── docker-compose.yml        <span style="color:#6e7681;"># PostgreSQL + pgvector</span></div>
+  </div>
+</div>
+
+<div class="mockup" style="margin-top:24px;">
+  <div class="mockup-header">Agent Plugin Interface — 核心扩展点</div>
+  <div class="mockup-body" style="padding:24px;background:#0d1117;border-radius:6px;font-family:monospace;font-size:12px;line-height:1.7;color:#c9d1d9;">
+    <div style="margin-bottom:16px;color:#8b949e;">所有 Agent 实现统一接口，注册即用。每个 Agent 是一个独立目录：</div>
+    <div style="background:#161b22;padding:16px;border-radius:4px;border:1px solid #30363d;">
+      <div style="color:#58a6ff;">class BaseAgent(ABC):</div>
+      <div style="padding-left:20px;color:#d2a8ff;">name</div><div style="padding-left:40px;color:#6e7681;">: str</div>
+      <div style="padding-left:20px;color:#d2a8ff;">description</div><div style="padding-left:40px;color:#6e7681;">: str</div>
+      <div style="padding-left:20px;color:#d2a8ff;">capabilities</div><div style="padding-left:40px;color:#6e7681;">: list[str]  <span style="color:#6e7681;"># ["code_gen", "git_ops", "testing"]</span></div>
+      <div style="padding-left:20px;color:#d2a8ff;">requires_confirmation</div><div style="padding-left:40px;color:#6e7681;">: bool = True  <span style="color:#6e7681;"># 默认需要确认</span></div>
+      <div style="margin-top:8px;"></div>
+      <div style="padding-left:20px;color:#58a6ff;">async def execute(</div>
+      <div style="padding-left:40px;color:#c9d1d9;">self,</div>
+      <div style="padding-left:40px;color:#d2a8ff;">task: TaskInput,</div>
+      <div style="padding-left:40px;color:#d2a8ff;">context: ProjectContext,</div>
+      <div style="padding-left:20px;color:#c9d1d9;">) -> AgentResult:</div>
+      <div style="padding-left:40px;color:#8b949e;"># AgentResult = changes: list[Change] + summary: str</div>
+    </div>
+    <div style="margin-top:16px;color:#8b949e;">
+      <span style="color:#3fb950;">├── codex_agent/plugin.py</span>   ← P0 实现一个桩
+      <span style="color:#6e7681;">├── claude_agent/</span>               ← 后续添加
+      <span style="color:#6e7681;">├── git_agent/</span>                  ← 后续添加
+      <span style="color:#6e7681;">└── test_agent/</span>                 ← 后续添加
+    </div>
+  </div>
+</div>
+
+<div class="mockup" style="margin-top:24px;">
+  <div class="mockup-header">LLMProvider 抽象 — 模型可替换</div>
+  <div class="mockup-body" style="padding:24px;background:#0d1117;border-radius:6px;font-family:monospace;font-size:12px;line-height:1.7;color:#c9d1d9;">
+    <div style="background:#161b22;padding:16px;border-radius:4px;border:1px solid #30363d;">
+      <div style="color:#58a6ff;">class BaseLLMProvider(ABC):</div>
+      <div style="padding-left:20px;color:#d2a8ff;">async def chat(</div>
+      <div style="padding-left:40px;color:#c9d1d9;">self, messages, tools=None</div>
+      <div style="padding-left:20px;color:#c9d1d9;">) -> LLMResponse</div>
+      <div style="padding-left:20px;color:#d2a8ff;">async def chat_stream(</div>
+      <div style="padding-left:40px;color:#c9d1d9;">self, messages, tools=None</div>
+      <div style="padding-left:20px;color:#c9d1d9;">) -> AsyncIterator[LLMChunk]</div>
+    </div>
+    <div style="margin-top:16px;color:#8b949e;">
+      <span style="color:#3fb950;">│   OpenAIProvider</span>   ← 默认实现
+      <span style="color:#6e7681;">│   AnthropicProvider</span>   ← 后续
+      <span style="color:#6e7681;">│   vLLMProvider</span>        ← 后续
+      <span style="color:#6e7681;">│   AnyOtherProvider</span>    ← 任意扩展
+    </div>
+  </div>
+</div>
+
+<div class="mockup" style="margin-top:24px;">
+  <div class="mockup-header">P0 API Endpoints</div>
+  <div class="mockup-body" style="padding:24px;background:#0d1117;border-radius:6px;">
+    <table style="width:100%;border-collapse:collapse;color:#c9d1d9;font-size:12px;">
+      <tr style="border-bottom:1px solid #30363d;">
+        <th style="text-align:left;padding:8px;color:#8b949e;">Method</th>
+        <th style="text-align:left;padding:8px;color:#8b949e;">Path</th>
+        <th style="text-align:left;padding:8px;color:#8b949e;">Description</th>
+      </tr>
+      <tr style="border-bottom:1px solid #21262d;">
+        <td style="padding:8px;color:#58a6ff;">GET</td>
+        <td style="padding:8px;">/api/projects</td>
+        <td style="padding:8px;">List all projects</td>
+      </tr>
+      <tr style="border-bottom:1px solid #21262d;">
+        <td style="padding:8px;color:#3fb950;">POST</td>
+        <td style="padding:8px;">/api/projects</td>
+        <td style="padding:8px;">Create project</td>
+      </tr>
+      <tr style="border-bottom:1px solid #21262d;">
+        <td style="padding:8px;color:#58a6ff;">GET</td>
+        <td style="padding:8px;">/api/projects/{id}</td>
+        <td style="padding:8px;">Get project detail</td>
+      </tr>
+      <tr style="border-bottom:1px solid #21262d;">
+        <td style="padding:8px;color:#f85149;">DELETE</td>
+        <td style="padding:8px;">/api/projects/{id}</td>
+        <td style="padding:8px;">Delete project (soft)</td>
+      </tr>
+      <tr style="border-bottom:1px solid #21262d;">
+        <td style="padding:8px;color:#f0883e;">PATCH</td>
+        <td style="padding:8px;">/api/projects/{id}</td>
+        <td style="padding:8px;">Update project</td>
+      </tr>
+      <tr>
+        <td style="padding:8px;color:#58a6ff;">GET</td>
+        <td style="padding:8px;">/api/agents</td>
+        <td style="padding:8px;">List registered agents</td>
+      </tr>
+    </table>
+  </div>
+</div>
+
+<div class="mockup" style="margin-top:24px;">
+  <div class="mockup-header">Data Model: Project</div>
+  <div class="mockup-body" style="padding:24px;background:#0d1117;border-radius:6px;font-family:monospace;font-size:12px;line-height:1.7;color:#c9d1d9;">
+    <div style="background:#161b22;padding:16px;border-radius:4px;border:1px solid #30363d;">
+      <div style="color:#8b949e;"># projects table</div>
+      <div><span style="color:#d2a8ff;">id</span>          UUID (PK)</div>
+      <div><span style="color:#d2a8ff;">name</span>        str, unique</div>
+      <div><span style="color:#d2a8ff;">description</span> str, nullable</div>
+      <div><span style="color:#d2a8ff;">created_at</span>  datetime</div>
+      <div><span style="color:#d2a8ff;">updated_at</span>  datetime</div>
+      <div><span style="color:#d2a8ff;">is_archived</span> bool, default=False</div>
+    </div>
+  </div>
+</div>
+</div>

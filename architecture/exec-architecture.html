@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AIOS Real Execution Architecture</title>
+<style>
+  :root {
+    --bg: #111315;
+    --surface: #191c1f;
+    --surface-2: #202428;
+    --line: #373c42;
+    --text: #edf0f2;
+    --muted: #a1a8af;
+    --real: #4cc38a;
+    --shadow: #55b8d8;
+    --future: #9098a1;
+    --gate: #ed6a5a;
+    --agent: #e2ac4f;
+    --store: #b18ce0;
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    min-height: 100vh;
+    padding: 36px 24px 64px;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei", sans-serif;
+  }
+  main { width: min(1180px, 100%); margin: 0 auto; }
+  h1 { margin: 0; font-size: 26px; line-height: 1.25; letter-spacing: 0; }
+  .subtitle { margin: 8px 0 18px; color: var(--muted); font-size: 13px; line-height: 1.6; }
+  .legend { display: flex; flex-wrap: wrap; gap: 8px 16px; margin-bottom: 30px; }
+  .legend-item { display: inline-flex; align-items: center; gap: 7px; color: var(--muted); font-size: 11px; }
+  .legend-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--future); }
+  .legend-dot.real { background: var(--real); }
+  .legend-dot.shadow { background: var(--shadow); }
+  .legend-dot.gate { background: var(--gate); }
+
+  .flow { display: flex; flex-direction: column; align-items: stretch; }
+  .arrow { height: 34px; display: grid; place-items: center; color: #69717a; font-size: 20px; }
+  .layer {
+    border: 1px solid var(--line);
+    border-left: 4px solid var(--future);
+    background: var(--surface);
+    padding: 18px 20px 20px;
+    border-radius: 6px;
+  }
+  .layer.real { border-left-color: var(--real); }
+  .layer.shadow { border-left-color: var(--shadow); }
+  .layer.gate { border-color: color-mix(in srgb, var(--gate) 65%, var(--line)); border-left-color: var(--gate); }
+  .layer.agent { border-left-color: var(--agent); }
+  .layer.store { border-left-color: var(--store); }
+  .layer-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; margin-bottom: 13px; }
+  .eyebrow { margin-bottom: 5px; color: var(--muted); font-size: 10px; font-weight: 700; text-transform: uppercase; }
+  .layer h2 { margin: 0; font-size: 16px; line-height: 1.35; letter-spacing: 0; }
+  .layer-summary { max-width: 560px; color: var(--muted); font-size: 11px; line-height: 1.65; text-align: right; }
+
+  .status { display: inline-block; padding: 2px 6px; border-radius: 3px; font-size: 9px; font-weight: 800; text-transform: uppercase; vertical-align: 1px; }
+  .status.real { color: var(--real); background: color-mix(in srgb, var(--real) 14%, transparent); }
+  .status.shadow { color: var(--shadow); background: color-mix(in srgb, var(--shadow) 14%, transparent); }
+  .status.future { color: #c2c7cc; background: color-mix(in srgb, var(--future) 16%, transparent); }
+  .status.gate { color: #ff9a8d; background: color-mix(in srgb, var(--gate) 16%, transparent); }
+
+  .node-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+  .node-grid.four { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .node-grid.five { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+  .node {
+    min-width: 0;
+    min-height: 96px;
+    border: 1px solid var(--line);
+    background: var(--surface-2);
+    padding: 12px 13px;
+    border-radius: 4px;
+  }
+  .node-title { margin-bottom: 6px; font-size: 12px; font-weight: 750; line-height: 1.4; overflow-wrap: anywhere; }
+  .node-desc { color: var(--muted); font-size: 10px; line-height: 1.6; overflow-wrap: anywhere; }
+  .runtime-line {
+    margin-bottom: 12px;
+    padding: 9px 11px;
+    border: 1px solid #30353a;
+    background: #141719;
+    color: #cbd0d5;
+    font: 11px/1.6 ui-monospace, SFMono-Regular, Consolas, monospace;
+    overflow-wrap: anywhere;
+  }
+  .future-branch { margin-top: 10px; padding-top: 11px; border-top: 1px dashed #41474d; }
+  .future-branch-title { margin-bottom: 8px; color: #b8bec4; font-size: 10px; font-weight: 700; }
+  .guardrail { margin-top: 11px; color: #ffafa5; font-size: 10px; line-height: 1.6; }
+  .gate-label { color: #ff9a8d; }
+  .storage-list { display: flex; flex-wrap: wrap; gap: 7px; }
+  .storage-item { border: 1px solid #4a4058; background: #211e26; padding: 5px 8px; border-radius: 3px; color: #d7c3ed; font-size: 10px; }
+
+  @media (max-width: 820px) {
+    body { padding: 24px 14px 48px; }
+    h1 { font-size: 22px; }
+    .layer { padding: 16px; }
+    .layer-head { display: block; }
+    .layer-summary { margin-top: 8px; max-width: none; text-align: left; }
+    .node-grid, .node-grid.four, .node-grid.five { grid-template-columns: 1fr 1fr; }
+  }
+  @media (max-width: 520px) {
+    .node-grid, .node-grid.four, .node-grid.five { grid-template-columns: 1fr; }
+    .node { min-height: 0; }
+    .legend { gap: 7px 12px; }
+  }
+</style>
+</head>
+<body>
+<main>
+  <h1>AIOS 真实执行架构</h1>
+  <p class="subtitle">当前代码路径、Shadow 能力与未来接口分开标记。认知可以判断和提出候选，但任何外部执行仍需要两次确认。</p>
+  <div class="legend" aria-label="状态图例">
+    <span class="legend-item"><span class="legend-dot real"></span>Real：当前已运行</span>
+    <span class="legend-item"><span class="legend-dot shadow"></span>Shadow：运行并记录，不影响回复</span>
+    <span class="legend-item"><span class="legend-dot"></span>Future：只有接口或设计</span>
+    <span class="legend-item"><span class="legend-dot gate"></span>Safety Gate：必须由用户确认</span>
+  </div>
+
+  <div class="flow">
+    <section class="layer real">
+      <div class="layer-head">
+        <div><div class="eyebrow">Layer 1 / Input Adapters</div><h2>多模态输入统一进入标准 Turn</h2></div>
+        <div class="layer-summary">语音不会建立第二套对话模型。Expo 完成短录音和幂等上传，持久转写再以可信 transcript Message 进入与文字相同的 Conversation 管道。</div>
+      </div>
+      <div class="node-grid four">
+        <div class="node"><div class="node-title"><span class="status real">real</span> 手机文字会话</div><div class="node-desc">Expo 持续会话、项目澄清、失败恢复、记忆确认、灵感候选审核与灵感池。</div></div>
+        <div class="node"><div class="node-title"><span class="status real">real</span> 手机按住说话</div><div class="node-desc">Expo 前台录音、300ms 短录音丢弃、60s 上限、上传/Turn 分层重试和状态 UI 已接通。</div></div>
+        <div class="node"><div class="node-title"><span class="status real">real</span> Durable Voice Backend</div><div class="node-desc">独立 STT/TTS Router、VoiceTranscription、幂等 multipart 上传、二进制 TTS 与 Provider 能力发现已实现。</div></div>
+        <div class="node"><div class="node-title"><span class="status future">future</span> PDF / Word / Excel</div><div class="node-desc">预留文档解析适配器，不直接进入执行链。</div></div>
+      </div>
+    </section>
+
+    <div class="arrow" aria-hidden="true">↓</div>
+
+    <section class="layer real">
+      <div class="layer-head">
+        <div><div class="eyebrow">Layer 2 / Durable Conversation</div><h2>Conversation API → Message / Turn 持久化 → ContextResolver</h2></div>
+        <div class="layer-summary">用户输入先提交，再解析项目和调用 Provider。客户端消息 UUID、转写绑定和重试都保持幂等。</div>
+      </div>
+      <div class="runtime-line">Press in → local short audio → durable VoiceTranscription → transcript Turn → project resolution → CognitiveAssessment → candidate projection → memory extraction → LLMRouter → Assistant Message → optional TTS</div>
+      <div class="node-grid">
+        <div class="node"><div class="node-title"><span class="status real">real</span> ContextResolver</div><div class="node-desc">显式项目、会话项目、名称匹配、无项目聊天与歧义澄清；不会静默重绑会话项目。</div></div>
+        <div class="node"><div class="node-title"><span class="status real">real</span> Memory Candidate</div><div class="node-desc">明确记忆请求只生成 pending 候选，用户接受后才进入长期上下文。</div></div>
+        <div class="node"><div class="node-title"><span class="status real">real</span> LLMRouter</div><div class="node-desc">OpenAI 强类型适配器已实现；vLLM 复用兼容协议，阿里与 Anthropic 可新增适配器。</div></div>
+      </div>
+    </section>
+
+    <div class="arrow" aria-hidden="true">↓</div>
+
+    <section class="layer shadow">
+      <div class="layer-head">
+        <div><div class="eyebrow">Layer 3 / Cognitive Layer</div><h2>Cognitive Engine 认知引擎</h2></div>
+        <div class="layer-summary">判断是在聊天、讨论、灵感、决定、任务、执行意图还是情绪表达。Assessment 不参与回复生成；已确认的 Inspiration Policy 只投影 pending 候选。</div>
+      </div>
+      <div class="runtime-line">Turn → ContextResolver → CognitiveEngine (Shadow) → CognitiveAssessment → pending InspirationCandidate → user review → Inspiration → event / scheduled Evolution scan → pending EvolutionProposal → user review → Relation / versioned IdeaDirection</div>
+      <div class="node-grid four">
+        <div class="node"><div class="node-title"><span class="status shadow">shadow real</span> Hybrid Engine</div><div class="node-desc">确定性规则已运行，语义 Provider 当前为 none；Engine 接口可替换。</div></div>
+        <div class="node"><div class="node-title"><span class="status real">real</span> CognitiveAssessment</div><div class="node-desc">不可变 revision、项目快照、证据摘要、脱敏审计与只读历史 API。</div></div>
+        <div class="node"><div class="node-title"><span class="status real">real</span> Inspiration Projector</div><div class="node-desc">重新验证持久 Assessment、项目快照和 artifact；幂等生成 pending 候选，失败不影响回复。</div></div>
+        <div class="node"><div class="node-title"><span class="status future">future</span> Semantic Provider</div><div class="node-desc">可接云模型、本地 vLLM 或其他 Provider，不能改写项目解析结果。</div></div>
+      </div>
+      <div class="future-branch">
+        <div class="future-branch-title">灵感权威池与可审核的创造性分支</div>
+        <div class="node-grid">
+          <div class="node"><div class="node-title"><span class="status real">real</span> Inspiration Pool</div><div class="node-desc">accepted candidate 才进入权威池；全局/项目隔离、详情、生命周期和 Expo 审核界面已实现。</div></div>
+          <div class="node"><div class="node-title"><span class="status real">real</span> Idea Evolution Engine</div><div class="node-desc">PostgreSQL Retriever + deterministic / optional semantic Hybrid；manual、event、scheduled 扫描只生成 pending Proposal。</div></div>
+          <div class="node"><div class="node-title"><span class="status gate">confirm real</span> Evolution Review</div><div class="node-desc">Expo 展示证据时间线、不确定性、影响和当前版本；接受后才建立 Relation 或追加不可变 IdeaDirection 版本。</div></div>
+        </div>
+        <div class="runtime-line">accepted Inspiration → immutable scan marker → one-shot worker + advisory lock → bounded corpus → grounded proposal → reject / snooze / accept → unchanged sources + auditable derived state</div>
+      </div>
+      <div class="guardrail">边界保证：Assessment 不修改 Assistant 回复；Projector 和 Evolution scan 只能创建 pending 候选；拒绝或稍后处理不产生派生状态；IdeaDirection 转任务仍必须进入独立 ExecutionTaskDraft 确认流。</div>
+    </section>
+
+    <div class="arrow" aria-hidden="true">↓</div>
+
+    <section class="layer real">
+      <div class="layer-head">
+        <div><div class="eyebrow gate-label">Layer 4 / Safety Gate 1</div><h2><span class="status gate">第一次确认</span> ExecutionTaskDraft 范围确认</h2></div>
+        <div class="layer-summary">Cognitive task artifact 判定后生成 Draft。用户可编辑项目、标题、目标和验收标准，确认后才创建 ExecutionTask。Agent 在确认前不会被分配或调用。</div>
+      </div>
+      <div class="runtime-line">Cognitive task artifact ? idempotent Draft projection ? scope edit (versioned) ? user accept/reject ? confirmed ExecutionTask snapshot</div>
+      <div class="node-grid">
+        <div class="node"><div class="node-title"><span class="status real">real</span> TaskDraftProjector</div><div class="node-desc">从 CognitiveAssessment task artifact 判定生成 pending Draft，同一 artifact 幂等，失败不影响 Assistant 回复。</div></div>
+        <div class="node"><div class="node-title"><span class="status real">real</span> Draft Edit &amp; Decision</div><div class="node-desc">用户可编辑项目、标题、目标、验收标准。accept 创建 Task，reject 不创建 Task。accept 幂等。</div></div>
+        <div class="node"><div class="node-title"><span class="status gate">confirm real</span> Scope Review</div><div class="node-desc">Expo 展示来源摘要、建议能力和不可编辑的系统守卫。缺项目/目标/验收标准时禁止接受。</div></div>
+      </div>
+      <div class="guardrail">接受前不会分配或调用 Agent。拒绝不创建 Task。projector 失败不影响 Assistant 回复。Draft / Task 不含 Provider 原始推理。</div>
+    </section>
+
+    <div class="arrow" aria-hidden="true">↓</div>
+
+    <section class="layer agent">
+      <div class="layer-head">
+        <div><div class="eyebrow">Layer 5 / Isolated Agent Runtime</div><h2>Agent Registry → Worktree / Container → Change + Test Report</h2></div>
+        <div class="layer-summary">插件发现和 Agent 契约已实现。Shell + Test + Git + LLM Coder Agent 运行于 Git Worktree 隔离环境。插件接口可替换。Agent 只能修改隔离副本，不能直接写用户项目。</div>
+      </div>
+            <div class="node-grid five">
+        <div class="node"><div class="node-title"><span class="status real">real</span> Shell Agent</div><div class="node-desc">在 Git Worktree 隔离环境执行 Shell 命令，通过 git diff 捕获变更。</div></div>
+        <div class="node"><div class="node-title"><span class="status real">real</span> Test Agent</div><div class="node-desc">在隔离环境运行 pytest，报告测试结果。</div></div>
+        <div class="node"><div class="node-title"><span class="status real">real</span> Git Agent</div><div class="node-desc">status, diff, commit, branch, tag — 所有操作限定在隔离 worktree。</div></div>
+        <div class="node"><div class="node-title"><span class="status real">real</span> LLM Coder Agent</div><div class="node-desc">调用 OpenAI 兼容 LLM 生成代码，写入隔离 workspace，解析 FILE/END 块输出 Change。</div></div>
+        <div class="node"><div class="node-title"><span class="status real">real</span> Codex Agent (双模式)</div><div class="node-desc">CLI/API 双模式。本地 CLI 不可用时自动回退 OpenAI 兼容 API。Claude Code Agent 待接入。</div></div>
+      </div>
+    </section>
+
+    <div class="arrow" aria-hidden="true">↓</div>
+
+    <section class="layer gate">
+      <div class="layer-head">
+        <div><div class="eyebrow gate-label">Layer 6 / Safety Gate 2</div><h2><span class="status gate">第二次确认</span> Diff、测试结果与风险审核</h2></div>
+        <div class="layer-summary">用户审核通过后才应用隔离变更；拒绝不会触碰真实项目。应用失败保留完整状态和审计记录。</div>
+      </div>
+      <div class="runtime-line">isolated Change → Diff + tests + risks → user approves / rejects → apply to real project</div>
+    </section>
+
+    <div class="arrow" aria-hidden="true">↓</div>
+
+    <section class="layer store">
+      <div class="layer-head">
+        <div><div class="eyebrow">Layer 7 / State & Audit</div><h2>PostgreSQL 16，pgvector 保留为可替换检索能力</h2></div>
+        <div class="layer-summary">权威状态结构化持久化，项目数据按 project_id 隔离。向量检索不是 P1 正确性的前提。</div>
+      </div>
+      <div class="storage-list">
+        <span class="storage-item">Projects</span><span class="storage-item">Conversation / Turn / Message</span>
+        <span class="storage-item">VoiceTranscription</span><span class="storage-item">MemoryCandidate</span>
+        <span class="storage-item">CognitiveAssessment</span><span class="storage-item">InspirationCandidate / Inspiration</span>
+        <span class="storage-item">EvolutionProposal / ScanAttempt</span><span class="storage-item">InspirationRelation</span>
+        <span class="storage-item">IdeaDirection / immutable Versions / Members</span><span class="storage-item">AuditEvent</span>
+        <span class="storage-item">ExecutionTaskDraft</span><span class="storage-item">ExecutionTask (confirmed snapshot)</span>
+        <span class="storage-item">Future: Agent Change / Worktree state</span>
+      </div>
+    </section>
+  </div>
+</main>
+</body>
+</html>

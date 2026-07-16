@@ -1,0 +1,112 @@
+﻿<h2>AIOS 整体架构概览 &amp; 子系统分解</h2>
+<p class="subtitle">项目覆盖 8 个独立子系统，需要拆分为独立子项目逐个推进</p>
+
+<div class="mockup">
+  <div class="mockup-header">AIOS System Architecture — Phase 1 (MVP)</div>
+  <div class="mockup-body" style="display:flex;flex-direction:column;gap:16px;padding:24px;background:#0d1117;border-radius:6px;">
+
+    <div style="display:flex;gap:12px;align-items:stretch;">
+      <div style="flex:1;background:#161b22;border:1px solid #30363d;border-radius:4px;padding:16px;">
+        <div style="color:#58a6ff;font-weight:600;font-size:13px;margin-bottom:8px;">多模态输入</div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;">
+          <span style="background:#1f6feb22;color:#58a6ff;padding:2px 8px;border-radius:3px;font-size:11px;">语音/文字 (优先)</span>
+          <span style="background:#1f6feb22;color:#58a6ff;padding:2px 8px;border-radius:3px;font-size:11px;">PDF</span>
+          <span style="background:#1f6feb22;color:#58a6ff;padding:2px 8px;border-radius:3px;font-size:11px;">Word</span>
+          <span style="background:#1f6feb22;color:#58a6ff;padding:2px 8px;border-radius:3px;font-size:11px;">Excel</span>
+        </div>
+      </div>
+      <div style="flex:1;background:#161b22;border:1px solid #30363d;border-radius:4px;padding:16px;">
+        <div style="color:#3fb950;font-weight:600;font-size:13px;margin-bottom:8px;">项目管理</div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;">
+          <span style="background:#2ea04322;color:#3fb950;padding:2px 8px;border-radius:3px;font-size:11px;">多项目</span>
+          <span style="background:#2ea04322;color:#3fb950;padding:2px 8px;border-radius:3px;font-size:11px;">独立知识</span>
+          <span style="background:#2ea04322;color:#3fb950;padding:2px 8px;border-radius:3px;font-size:11px;">独立上下文</span>
+        </div>
+      </div>
+    </div>
+
+    <div style="background:#161b22;border:2px solid #f0883e;border-radius:4px;padding:20px;">
+      <div style="color:#f0883e;font-weight:700;font-size:14px;margin-bottom:12px;">AIOS Core — 智能调度引擎</div>
+      <div style="display:flex;gap:12px;flex-wrap:wrap;">
+        <div style="flex:1;min-width:140px;background:#0d1117;border-radius:3px;padding:12px;">
+          <div style="color:#d2a8ff;font-weight:600;font-size:12px;">持续对话</div>
+          <div style="color:#8b949e;font-size:11px;margin-top:4px;">会话管理 · 流式响应 · 中断恢复</div>
+        </div>
+        <div style="flex:1;min-width:140px;background:#0d1117;border-radius:3px;padding:12px;">
+          <div style="color:#d2a8ff;font-weight:600;font-size:12px;">长期记忆</div>
+          <div style="color:#8b949e;font-size:11px;margin-top:4px;">向量存储 · 记忆检索 · 衰减策略</div>
+        </div>
+        <div style="flex:1;min-width:140px;background:#0d1117;border-radius:3px;padding:12px;">
+          <div style="color:#d2a8ff;font-weight:600;font-size:12px;">上下文管理</div>
+          <div style="color:#8b949e;font-size:11px;margin-top:4px;">歧义澄清 · 信度判断 · 窗口优化</div>
+        </div>
+        <div style="flex:1;min-width:140px;background:#0d1117;border-radius:3px;padding:12px;">
+          <div style="color:#d2a8ff;font-weight:600;font-size:12px;">灵感池</div>
+          <div style="color:#8b949e;font-size:11px;margin-top:4px;">状态流转 · 快速捕获 · 定期回顾</div>
+        </div>
+      </div>
+    </div>
+
+    <div style="display:flex;gap:12px;align-items:stretch;">
+      <div style="flex:2;background:#161b22;border:1px solid #30363d;border-radius:4px;padding:16px;">
+        <div style="color:#f0883e;font-weight:600;font-size:13px;margin-bottom:8px;">多 Agent 协作</div>
+        <div style="display:flex;flex-direction:column;gap:6px;">
+          <div style="display:flex;gap:8px;align-items:center;">
+            <span style="background:#1f6feb22;color:#58a6ff;padding:2px 8px;border-radius:3px;font-size:11px;">Codex</span>
+            <span style="background:#1f6feb22;color:#58a6ff;padding:2px 8px;border-radius:3px;font-size:11px;">Claude Code</span>
+            <span style="background:#1f6feb22;color:#58a6ff;padding:2px 8px;border-radius:3px;font-size:11px;">Git Agent</span>
+            <span style="background:#1f6feb22;color:#58a6ff;padding:2px 8px;border-radius:3px;font-size:11px;">Test Agent</span>
+            <span style="color:#8b949e;font-size:11px;">+ 插件扩展</span>
+          </div>
+        </div>
+      </div>
+      <div style="flex:1;background:#161b22;border:1px solid #da3633;border-radius:4px;padding:16px;">
+        <div style="color:#f85149;font-weight:600;font-size:13px;margin-bottom:8px;">审核中心</div>
+        <div style="color:#8b949e;font-size:11px;">修改展示 · Diff 预览 · 用户确认 · 执行回滚</div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<div class="section">
+  <h3>8 个子系统 — 建议执行顺序</h3>
+</div>
+
+<div class="options">
+  <div class="option" data-choice="phase0" onclick="toggleSelect(this)">
+    <div class="letter">P0</div>
+    <div class="content">
+      <h3>基础架构 &amp; 项目管理</h3>
+      <p>FastAPI 骨架、PostgreSQL 模型、项目 CRUD、Agent 插件接口。所有后续子系统的基础。</p>
+    </div>
+  </div>
+  <div class="option" data-choice="phase1" onclick="toggleSelect(this)">
+    <div class="letter">P1</div>
+    <div class="content">
+      <h3>持续对话 + 长期记忆</h3>
+      <p>会话管理、流式响应、pgvector 记忆存储与检索。最核心的用户交互闭环。</p>
+    </div>
+  </div>
+  <div class="option" data-choice="phase2" onclick="toggleSelect(this)">
+    <div class="letter">P2</div>
+    <div class="content">
+      <h3>上下文管理 + 灵感池</h3>
+      <p>歧义澄清引擎、项目前置信度判断、灵感快速捕获与状态流转。</p>
+    </div>
+  </div>
+  <div class="option" data-choice="phase3" onclick="toggleSelect(this)">
+    <div class="letter">P3</div>
+    <div class="content">
+      <h3>多 Agent 协作 + 审核中心</h3>
+      <p>Agent 调度器、插件化接入、Diff 展示、用户确认-执行-回滚流程。</p>
+    </div>
+  </div>
+  <div class="option" data-choice="phase4" onclick="toggleSelect(this)">
+    <div class="letter">P4</div>
+    <div class="content">
+      <h3>多模态输入</h3>
+      <p>语音转文字、PDF/Word/Excel 解析管道。进度上与前三阶段可部分并行。</p>
+    </div>
+  </div>
+</div>
